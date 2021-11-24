@@ -57,6 +57,8 @@ The following arguments are supported:
 
 * `name` - (Required) A unique name for the resource, required by libvirt.
   Changing this forces a new resource to be created.
+* `region` - (Optional) The libvirt client region to create the resource to.
+* `az` - (Optional) The libvirt client availability-zone to create the resource to.
 * `type` - (Optional) The storage volume to be created.
   If not given, the `file` storage volume type will be used.
   Currently supported types are `file` and `rbd`.
