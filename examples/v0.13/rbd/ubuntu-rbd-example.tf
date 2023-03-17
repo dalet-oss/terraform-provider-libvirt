@@ -3,7 +3,7 @@ terraform {
   required_providers {
     libvirt = {
       source  = "dalet-oss/libvirt"
-      version = "0.7.11-rbd-multihosts"
+      version = "0.7.1-rbd-multihosts"
     }
   }
 }
