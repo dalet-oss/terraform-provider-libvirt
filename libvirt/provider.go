@@ -3,12 +3,11 @@ package libvirt
 import (
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// Provider libvirt
-func Provider() terraform.ResourceProvider {
+// Provider libvirt.
+func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"uri": {
@@ -39,10 +38,10 @@ func Provider() terraform.ResourceProvider {
 }
 
 // uri -> client for multi instance support
-// (we share the same client for the same uri)
+// (we share the same client for the same uri).
 var globalClientMap = make(map[string]*Client)
 
-// CleanupLibvirtConnections closes libvirt clients for all URIs
+// CleanupLibvirtConnections closes libvirt clients for all URIs.
 func CleanupLibvirtConnections() {
 	for uri, client := range globalClientMap {
 		log.Printf("[DEBUG] cleaning up connection for URI: %s", uri)

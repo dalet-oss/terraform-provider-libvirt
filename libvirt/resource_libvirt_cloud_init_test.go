@@ -1,13 +1,15 @@
 package libvirt
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"testing"
 
 	libvirt "github.com/digitalocean/go-libvirt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestAccLibvirtCloudInit_CreateCloudInitDiskAndUpdate(t *testing.T) {
@@ -46,7 +48,7 @@ func TestAccLibvirtCloudInit_CreateCloudInitDiskAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"libvirt_cloudinit_disk."+randomResourceName, "name", randomIsoName),
 					testAccCheckCloudInitVolumeExists("libvirt_cloudinit_disk."+randomResourceName, &volume),
-					expectedContents.testAccCheckCloudInitDiskFilesContent("libvirt_cloudinit_disk."+randomResourceName, &volume),
+					expectedContents.testAccCheckCloudInitDiskFilesContent("libvirt_cloudinit_disk."+randomResourceName),
 				),
 			},
 			{
@@ -68,7 +70,7 @@ func TestAccLibvirtCloudInit_CreateCloudInitDiskAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"libvirt_cloudinit_disk."+randomResourceName, "name", randomIsoName),
 					testAccCheckCloudInitVolumeExists("libvirt_cloudinit_disk."+randomResourceName, &volume),
-					expectedContents2.testAccCheckCloudInitDiskFilesContent("libvirt_cloudinit_disk."+randomResourceName, &volume),
+					expectedContents2.testAccCheckCloudInitDiskFilesContent("libvirt_cloudinit_disk."+randomResourceName),
 				),
 			},
 			{
@@ -87,7 +89,7 @@ func TestAccLibvirtCloudInit_CreateCloudInitDiskAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"libvirt_cloudinit_disk."+randomResourceName, "name", randomIsoName),
 					testAccCheckCloudInitVolumeExists("libvirt_cloudinit_disk."+randomResourceName, &volume),
-					expectedContentsEmpty.testAccCheckCloudInitDiskFilesContent("libvirt_cloudinit_disk."+randomResourceName, &volume),
+					expectedContentsEmpty.testAccCheckCloudInitDiskFilesContent("libvirt_cloudinit_disk."+randomResourceName),
 				),
 			},
 			// when we apply 2 times with same conf, we should not have a diff. See bug:
@@ -110,7 +112,7 @@ func TestAccLibvirtCloudInit_CreateCloudInitDiskAndUpdate(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"libvirt_cloudinit_disk."+randomResourceName, "name", randomIsoName),
 					testAccCheckCloudInitVolumeExists("libvirt_cloudinit_disk."+randomResourceName, &volume),
-					expectedContentsEmpty.testAccCheckCloudInitDiskFilesContent("libvirt_cloudinit_disk."+randomResourceName, &volume),
+					expectedContentsEmpty.testAccCheckCloudInitDiskFilesContent("libvirt_cloudinit_disk."+randomResourceName),
 				),
 			},
 		},
@@ -120,7 +122,7 @@ func TestAccLibvirtCloudInit_CreateCloudInitDiskAndUpdate(t *testing.T) {
 // The destroy function should always handle the case where the resource might already be destroyed
 // (manually, for example). If the resource is already destroyed, this should not return an error.
 // This allows Terraform users to manually delete resources without breaking Terraform.
-// This test should fail without a proper "Exists" implementation
+// This test should fail without a proper "Exists" implementation.
 func TestAccLibvirtCloudInit_ManuallyDestroyed(t *testing.T) {
 	var volume libvirt.StorageVol
 	randomResourceName := acctest.RandStringFromCharSet(10, acctest.CharSetAlpha)
@@ -160,7 +162,7 @@ func TestAccLibvirtCloudInit_ManuallyDestroyed(t *testing.T) {
 					if volume.Key == "" {
 						t.Fatalf("Key is blank")
 					}
-					if err := volumeDelete(client, volume.Key); err != nil {
+					if err := volumeDelete(context.Background(), client, volume.Key); err != nil {
 						t.Fatal(err)
 					}
 				},
@@ -177,20 +179,23 @@ func testAccCheckCloudInitVolumeExists(volumeName string, volume *libvirt.Storag
 		if err != nil {
 			return err
 		}
+
 		cikey, err := getCloudInitVolumeKeyFromTerraformID(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
+
 		retrievedVol, err := virConn.StorageVolLookupByKey(cikey)
 		if err != nil {
 			return err
 		}
+
 		if retrievedVol.Key == "" {
 			return fmt.Errorf("UUID is blank")
 		}
 
 		if retrievedVol.Key != cikey {
-			fmt.Printf("retrievedVol.Key is: %s \ncloudinit key is %s", retrievedVol.Key, cikey)
+			log.Printf("[DEBUG]: retrievedVol.Key is: %s \ncloudinit key is %s", retrievedVol.Key, cikey)
 			return fmt.Errorf("Resource ID and cloudinit volume key does not match")
 		}
 
@@ -200,12 +205,12 @@ func testAccCheckCloudInitVolumeExists(volumeName string, volume *libvirt.Storag
 	}
 }
 
-// this is helper method for test expected values
+// this is helper method for test expected values.
 type Expected struct {
 	UserData, NetworkConfig, MetaData string
 }
 
-func (expected *Expected) testAccCheckCloudInitDiskFilesContent(volumeName string, volume *libvirt.StorageVol) resource.TestCheckFunc {
+func (expected *Expected) testAccCheckCloudInitDiskFilesContent(volumeName string) resource.TestCheckFunc {
 	return func(state *terraform.State) error {
 		virConn := testAccProvider.Meta().(*Client).libvirt
 
@@ -214,7 +219,10 @@ func (expected *Expected) testAccCheckCloudInitDiskFilesContent(volumeName strin
 			return err
 		}
 
-		cloudInitDiskDef, err := newCloudInitDefFromRemoteISO(virConn, rs.Primary.ID)
+		cloudInitDiskDef, err := newCloudInitDefFromRemoteISO(context.Background(), virConn, rs.Primary.ID)
+		if err != nil {
+			return err
+		}
 
 		if cloudInitDiskDef.MetaData != expected.MetaData {
 			return fmt.Errorf("metadata '%s' content differs from expected Metadata %s", cloudInitDiskDef.MetaData, expected.MetaData)

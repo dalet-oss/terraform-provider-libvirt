@@ -1,4 +1,4 @@
-name: Tests
+name: Build and Test
 on:
   pull_request:
     paths-ignore:
@@ -10,20 +10,44 @@ on:
     paths-ignore:
       - '*.md'
       - 'website/*'
+permissions:
+  contents: read
+  pull-requests: read
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.18.x"]
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: terraform fmt
+        run: |
+          make tflint
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.50.0
+          only-new-issues: true
   build:
     name: Build
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          - {os: ubuntu-latest, go: 1.16}
-          - {os: windows-latest, go: 1.16}
-          - {os: macos-latest, go: 1.16}
+          - {os: ubuntu-latest, go: 1.18}
+          - {os: windows-latest, go: 1.18}
+          - {os: macos-latest, go: 1.18}
     timeout-minutes: 10
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ matrix.go }}
         id: go
@@ -31,9 +55,6 @@ jobs:
         uses: actions/checkout@v2
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v1
-      - name: Terraform fmt
-        run: |
-          make tf-check
       - name: Build
         run: |
           make

@@ -18,7 +18,7 @@ resource "libvirt_network" "kube_network" {
   # the name used by libvirt
   name = "k8snet"
 
-  # mode can be: "nat" (default), "none", "route", "bridge"
+  # mode can be: "nat" (default), "none", "route", "open", "bridge"
   mode = "nat"
 
   #  the domain used by the DNS server in this network
@@ -82,11 +82,15 @@ resource "libvirt_network" "kube_network" {
 
   # (Optional) Dnsmasq options configuration
   dnsmasq_options {
-    # (Optional) one or more option entries.  Both of
-    # "option_name" and "option_value" must be specified.  The format is:
+    # (Optional) one or more option entries.
+    # "option_name" muast be specified while "option_value" is
+	# optional to also support value-less options.  The format is:
     # options  {
     #     option_name = "server"
     #     option_value = "/base.domain/my.ip.address.1"
+    #   }
+    # options  {
+    #     option_name = "no-hosts"
     #   }
     # options {
     #     option_name = "address"
@@ -123,6 +127,7 @@ The following arguments are supported:
     the virtual network to the LAN **without applying any NAT**. It requires that
     the IP address range be pre-configured in the routing tables of the router
     on the host network.
+    - `open`: similar to `route`, but no firewall rules are added.
     - `bridge`: use a pre-existing host bridge. The guests will effectively be
     directly connected to the physical network (i.e. their IP addresses will
     all be on the subnet of the physical network, and there will be no
@@ -130,7 +135,7 @@ The following arguments are supported:
     attribute is mandatory in this case.
 * `bridge` - (Optional) The bridge device defines the name of a bridge
    device which will be used to construct the virtual network (when not provided,
-   it will be automatically obtained by libvirt in `none`, `nat` and `route` modes).
+   it will be automatically obtained by libvirt in `none`, `nat`, `route` and `open` modes).
 * `mtu` - (Optional) The MTU to set for the underlying network interfaces. When
    not supplied, libvirt will use the default for the interface, usually 1500.
    Libvirt version 5.1 and greater will advertise this value to nodes via DHCP.
@@ -204,7 +209,8 @@ resource "libvirt_network" "k8snet" {
   You need to provide a list of option name and value pairs.
 
   * `options` - (Optional) a Dnsmasq option entry block. You can have one or more of these
-   blocks in your definition. You must specify both `option_name` and `option_value`.
+   blocks in your definition. You must specify `option_name` while `option_value` is
+   optional to support value-less options.
 
   An example of setting Dnsmasq options (using Dnsmasq option templates) follows:
 
