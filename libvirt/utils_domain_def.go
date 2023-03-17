@@ -137,6 +137,7 @@ func getHostArchitecture(virConn *libvirt.Libvirt) (string, error) {
 	return capabilities.Host.CPU.Arch, nil
 }
 
+//
 func getHostCapabilities(virConn *libvirt.Libvirt) (libvirtxml.Caps, error) {
 	// We should perhaps think of storing this on the connect object
 	// on first call to avoid the back and forth
