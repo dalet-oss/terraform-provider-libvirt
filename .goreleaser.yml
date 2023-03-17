@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 # Visit https://goreleaser.com for documentation on how to customize this
 # behavior.
 before:
@@ -41,7 +38,7 @@ checksum:
 signs:
   - artifacts: checksum
     args:
-      # if you are using this in a GitHub action or some other automated pipeline, you 
+      # if you are using this in a GitHub action or some other automated pipeline, you
       # need to pass the batch flag to indicate its not interactive.
       - "--batch"
       - "--local-user"
@@ -51,7 +48,6 @@ signs:
       - "--detach-sign"
       - "${artifact}"
 release:
-  # If you want to manually examine the release before its live, uncomment this line:
-  # draft: true
+  draft: true
 changelog:
   skip: true
