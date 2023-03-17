@@ -26,19 +26,18 @@ const (
 //
 // Resource example:
 //
-// resource "libvirt_network" "k8snet" {
-//    name = "k8snet"
-//    domain = "k8s.local"
-//    mode = "nat"
-//    addresses = ["10.17.3.0/24"]
-// }
+//	resource "libvirt_network" "k8snet" {
+//	   name = "k8snet"
+//	   domain = "k8s.local"
+//	   mode = "nat"
+//	   addresses = ["10.17.3.0/24"]
+//	}
 //
 // "addresses" can contain (0 or 1) ipv4 and (0 or 1) ipv6 subnets
 // "mode" can be one of: "nat" (default), "isolated"
 //
 // Not all resources support update, for those that require ForceNew
-// check here: https://gitlab.com/search?utf8=%E2%9C%93&search=virNetworkDefUpdateNoSupport&group_id=130330&project_id=192693&search_code=true&repository_ref=master
-//
+// check virNetworkDefUpdateNoSupport in libvirt src/conf/network_conf.c.
 func resourceLibvirtNetwork() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceLibvirtNetworkCreate,
@@ -50,6 +49,18 @@ func resourceLibvirtNetwork() *schema.Resource {
 			State: schema.ImportStatePassthrough,
 		},
 		Schema: map[string]*schema.Schema{
+			"region": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "default",
+				ForceNew: true,
+			},
+			"az": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "default",
+				ForceNew: true,
+			},
 			"name": {
 				Type:     schema.TypeString,
 				Required: true,
@@ -315,7 +326,11 @@ func resourceLibvirtNetworkExists(d *schema.ResourceData, meta interface{}) (boo
 func resourceLibvirtNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	// check the list of things that can be changed dynamically
 	// in https://wiki.libvirt.org/page/Networking#virsh_net-update
-	virConn := meta.(*Client).libvirt
+	client, err := resourceGetClient(d, meta)
+	if err != nil {
+		return err
+	}
+	virConn := client.libvirt
 	if virConn == nil {
 		return fmt.Errorf(LibVirtConIsNil)
 	}
@@ -348,7 +363,7 @@ func resourceLibvirtNetworkUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	// detect changes in the DNS entries in this network
-	err = updateDNSHosts(d, meta, network)
+	err = updateDNSHosts(d, client, network)
 	if err != nil {
 		return fmt.Errorf("error updating DNS hosts for network %s: %s", network.Name, err)
 	}
@@ -360,7 +375,11 @@ func resourceLibvirtNetworkUpdate(d *schema.ResourceData, meta interface{}) erro
 // resourceLibvirtNetworkCreate creates a libvirt network from the resource definition
 func resourceLibvirtNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	// see https://libvirt.org/formatnetwork.html
-	virConn := meta.(*Client).libvirt
+	client, err := resourceGetClient(d, meta)
+	if err != nil {
+		return err
+	}
+	virConn := client.libvirt
 	if virConn == nil {
 		return fmt.Errorf(LibVirtConIsNil)
 	}
@@ -465,8 +484,8 @@ func resourceLibvirtNetworkCreate(d *schema.ResourceData, meta interface{}) erro
 	network, err := func() (libvirt.Network, error) {
 		// define only one network at a time
 		// see https://gitlab.com/libvirt/libvirt/-/issues/78
-		meta.(*Client).networkMutex.Lock()
-		defer meta.(*Client).networkMutex.Unlock()
+		client.networkMutex.Lock()
+		defer client.networkMutex.Unlock()
 
 		log.Printf("[DEBUG] creating libvirt network: %s", data)
 		return virConn.NetworkDefineXML(data)
@@ -525,7 +544,11 @@ func resourceLibvirtNetworkCreate(d *schema.ResourceData, meta interface{}) erro
 func resourceLibvirtNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Read resource libvirt_network")
 
-	virConn := meta.(*Client).libvirt
+	client, err := resourceGetClient(d, meta)
+	if err != nil {
+		return err
+	}
+	virConn := client.libvirt
 	if virConn == nil {
 		return fmt.Errorf(LibVirtConIsNil)
 	}
@@ -676,7 +699,11 @@ func resourceLibvirtNetworkRead(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceLibvirtNetworkDelete(d *schema.ResourceData, meta interface{}) error {
-	virConn := meta.(*Client).libvirt
+	client, err := resourceGetClient(d, meta)
+	if err != nil {
+		return err
+	}
+	virConn := client.libvirt
 	if virConn == nil {
 		return fmt.Errorf(LibVirtConIsNil)
 	}
