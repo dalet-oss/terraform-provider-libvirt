@@ -97,6 +97,7 @@ Optional:
 - `block_device` (String)
 - `file` (String)
 - `rbd` (Boolean)
+- `rbd_auth_secret_uuid` (String)
 - `rbd_host` (String)
 - `rbd_image` (String)
 - `rbd_pool` (String)

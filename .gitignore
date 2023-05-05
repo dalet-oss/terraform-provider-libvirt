@@ -7,3 +7,4 @@
 *.cov
 terraform-provider-libvirt
 .terraform
+bin
