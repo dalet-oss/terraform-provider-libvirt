@@ -506,11 +506,11 @@ func setDisks(d *schema.ResourceData, domainDef *libvirtxml.Domain, virConn *lib
 				return fmt.Errorf("Can't retrieve RBD image")
 			}
 
-			cephAuthSecretUuid := d.Get(prefix + ".rbd_auth_secret_uuid").(string)
-			if cephAuthSecretUuid != "" {
+			cephAuthSecretUUID := d.Get(prefix + ".rbd_auth_secret_uuid").(string)
+			if cephAuthSecretUUID != "" {
 				domainDiskSecret := &libvirtxml.DomainDiskSecret{
 					Type: "ceph",
-					UUID: cephAuthSecretUuid,
+					UUID: cephAuthSecretUUID,
 				}
 
 				disk.Auth = &libvirtxml.DomainDiskAuth{
