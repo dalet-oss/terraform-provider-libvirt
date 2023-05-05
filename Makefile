@@ -3,7 +3,10 @@ LDFLAGS += -X main.version=$$(git describe --always --abbrev=40 --dirty)
 # default  args for tests
 TEST_ARGS_DEF := -covermode=count -coverprofile=profile.cov
 
-default: build
+default: deps build docs
+
+deps:
+	go mod download
 
 terraform-provider-libvirt:
 	go build -ldflags "${LDFLAGS}"
@@ -42,6 +45,10 @@ tflint:
 	terraform fmt -write=false -check=true -diff=true examples/
 
 lint: golangcilint tflint
+
+.PHONY: docs
+docs:
+	go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
 clean:
 	rm -f terraform-provider-libvirt
