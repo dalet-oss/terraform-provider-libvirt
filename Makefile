@@ -3,7 +3,7 @@ LDFLAGS += -X main.version=$$(git describe --always --abbrev=40 --dirty)
 # default  args for tests
 TEST_ARGS_DEF := -covermode=count -coverprofile=profile.cov
 
-default: deps build docs
+default: deps build #docs
 
 deps:
 	go mod download
