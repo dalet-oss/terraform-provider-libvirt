@@ -362,16 +362,13 @@ func resourceLibvirtVolumeRead(d *schema.ResourceData, meta interface{}) error {
 	if volume.Name == "" {
 		return fmt.Errorf("error retrieving volume name for volume: %s", d.Id())
 	}
-
 	volPool, err := virConn.StoragePoolLookupByVolume(*volume)
 	if err != nil {
 		return fmt.Errorf("error retrieving pool for volume: %s", err)
 	}
-
 	if volPool.Name == "" {
 		return fmt.Errorf("error retrieving pool name for volume: %s", volume.Name)
 	}
-
 	d.Set("pool", volPool.Name)
 	d.Set("name", volume.Name)
 
@@ -386,12 +383,10 @@ func resourceLibvirtVolumeRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 	d.Set("size", size)
-
 	volumeDef, err := newDefVolumeFromLibvirt(virConn, *volume)
 	if err != nil {
 		return err
 	}
-
 	if volumeDef.Target == nil || volumeDef.Target.Format == nil || volumeDef.Target.Format.Type == "" {
 		log.Printf("Volume has no format specified: %s", volume.Name)
 	} else {

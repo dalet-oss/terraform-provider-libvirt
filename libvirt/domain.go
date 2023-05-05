@@ -507,15 +507,16 @@ func setDisks(d *schema.ResourceData, domainDef *libvirtxml.Domain, virConn *lib
 			}
 
 			cephAuthSecretUuid := d.Get(prefix + ".rbd_auth_secret_uuid").(string)
-			domainDiskSecret := &libvirtxml.DomainDiskSecret{
-				Type:  "ceph",
-				Usage: "ceph",
-				UUID:  cephAuthSecretUuid,
-			}
+			if cephAuthSecretUuid != "" {
+				domainDiskSecret := &libvirtxml.DomainDiskSecret{
+					Type: "ceph",
+					UUID: cephAuthSecretUuid,
+				}
 
-			disk.Auth = &libvirtxml.DomainDiskAuth{
-				Username: "libvirt",
-				Secret:   domainDiskSecret,
+				disk.Auth = &libvirtxml.DomainDiskAuth{
+					Username: "libvirt",
+					Secret:   domainDiskSecret,
+				}
 			}
 
 			hosts := []libvirtxml.DomainDiskSourceHost{
