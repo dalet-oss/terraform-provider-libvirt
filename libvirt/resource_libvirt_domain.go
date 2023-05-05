@@ -951,10 +951,12 @@ func resourceLibvirtDomainRead(d *schema.ResourceData, meta interface{}) error {
 			if diskDef.Source.Network.Protocol == "rbd" {
 				res := strings.Split(diskDef.Source.Network.Name, "/")
 				disk = map[string]interface{}{
-					"rbd_host":  diskDef.Source.Network.Hosts[0].Name,
-					"rbd_port":  diskDef.Source.Network.Hosts[0].Port,
-					"rbd_pool":  res[0],
-					"rbd_image": res[1],
+					"rbd":                  true,
+					"rbd_host":             diskDef.Source.Network.Hosts[0].Name,
+					"rbd_port":             diskDef.Source.Network.Hosts[0].Port,
+					"rbd_pool":             res[0],
+					"rbd_image":            res[1],
+					"rbd_auth_secret_uuid": diskDef.Auth.Secret.UUID,
 				}
 			} else {
 				url, err := url.Parse(fmt.Sprintf("%s://%s:%s%s",
